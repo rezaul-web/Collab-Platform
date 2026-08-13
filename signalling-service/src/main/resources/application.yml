@@ -1,11 +1,19 @@
 server:
   port: 8083
+
 spring:
   application:
     name: signalling-service
+
 grpc:
   server:
     port: 9093
+
+app:
+  jwt:
+    secret: Y29sbGFiLXBsYXRmb3JtLXN1cGVyLXNlY3JldC1rZXktMTIzNDU2Nzg=
+    expiration-ms: 86400000
+
 logging:
   level:
     com.example.collab.signalling: DEBUG

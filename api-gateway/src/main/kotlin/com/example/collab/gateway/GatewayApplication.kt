@@ -9,9 +9,12 @@ import org.springframework.boot.runApplication
  * Routes incoming HTTP requests to the appropriate downstream
  * microservice based on path prefixes configured in application.yml.
  *
- * Runs on port **8080** (the only public-facing port).
+ * Runs on port **8000** (the only public-facing port).
+ *
+ * Excludes component scanning of com.example.collab.common to avoid
+ * pulling in servlet-based security beans into this reactive application.
  */
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = ["com.example.collab.gateway"])
 class GatewayApplication
 
 fun main(args: Array<String>) {

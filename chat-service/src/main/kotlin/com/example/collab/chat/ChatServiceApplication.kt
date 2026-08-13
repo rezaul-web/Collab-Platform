@@ -10,6 +10,7 @@ import org.springframework.context.annotation.ComponentScan
  * Provides real-time chat functionality, GraphQL APIs, and WebSocket STOMP messaging capabilities.
  */
 @SpringBootApplication
+@ComponentScan(basePackages = ["com.example.collab.chat", "com.example.collab.common"])
 class ChatServiceApplication
 
 /**

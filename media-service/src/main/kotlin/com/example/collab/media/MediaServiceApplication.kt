@@ -10,6 +10,7 @@ import org.springframework.context.annotation.ComponentScan
  * Manages WebRTC media session creation and connection tokens via OpenVidu.
  */
 @SpringBootApplication
+@ComponentScan(basePackages = ["com.example.collab.media", "com.example.collab.common"])
 class MediaServiceApplication
 
 /**

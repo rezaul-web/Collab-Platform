@@ -9,6 +9,7 @@ dependencies {
     implementation(project(":proto"))
 
     implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("net.devh:grpc-server-spring-boot-starter:3.1.0.RELEASE")
     implementation("io.grpc:grpc-netty-shaded:1.62.2")
 

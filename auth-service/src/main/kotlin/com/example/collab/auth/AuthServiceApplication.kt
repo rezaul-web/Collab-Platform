@@ -10,6 +10,7 @@ import org.springframework.context.annotation.ComponentScan
  * Scans both local auth components and shared common components for Spring beans.
  */
 @SpringBootApplication
+@ComponentScan(basePackages = ["com.example.collab.auth", "com.example.collab.common"])
 class AuthServiceApplication
 
 fun main(args: Array<String>) {

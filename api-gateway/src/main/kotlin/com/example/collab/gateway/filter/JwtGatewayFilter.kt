@@ -26,6 +26,8 @@ class JwtGatewayFilter : GlobalFilter, Ordered {
     private val publicPaths = listOf(
         "/api/auth/register",
         "/api/auth/login",
+        "/api/signalling/health",
+        "/api/media/health",
         "/actuator",
         "/graphiql",
         "/health"

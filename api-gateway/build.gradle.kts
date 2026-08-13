@@ -13,11 +13,10 @@ dependencyManagement {
 }
 
 dependencies {
-    implementation(project(":common"))
-
     // Spring Cloud Gateway (reactive — Netty, NOT servlet)
     implementation("org.springframework.cloud:spring-cloud-starter-gateway")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.8.1")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
