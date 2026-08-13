@@ -4,6 +4,54 @@ A real-time collaborative platform built with Kotlin, Spring Boot, and WebRTC. T
 
 ## Microservices Architecture
 
+```text
+                         ┌─────────────────┐
+                         │     Client      │
+                         │ Web / Android   │
+                         └────────┬────────┘
+                                  │
+                         HTTP / WebSocket
+                                  │
+                                  ▼
+                       ┌───────────────────┐
+                       │    API Gateway    │
+                       │      :8000        │
+                       └─────────┬─────────┘
+                                 │
+          ┌──────────────────────┼──────────────────────┐
+          │                      │                      │
+          ▼                      ▼                      ▼
+ ┌────────────────┐     ┌────────────────┐     ┌────────────────┐
+ │ Auth Service   │     │ Chat Service   │     │ Media Service  │
+ │    :8081       │     │    :8082       │     │    :8084       │
+ │                │     │                │     │                │
+ │ JWT            │     │ GraphQL        │     │ OpenVidu       │
+ │ Login          │     │ WebSocket      │     │ Media sessions │
+ │ Register       │     │ Rooms          │     │ Recording      │
+ └───────┬────────┘     └───────┬────────┘     └───────┬────────┘
+         │                      │                      │
+         └──────────────┬───────┴──────────────┬───────┘
+                        │                      │
+                       gRPC                  gRPC
+                        │                      │
+                        ▼                      ▼
+                  ┌───────────┐         ┌────────────┐
+                  │ PostgreSQL│         │   Redis    │
+                  └───────────┘         └────────────┘
+
+                         WebRTC
+                            │
+                            ▼
+                     ┌────────────┐
+                     │  Signalling│
+                     │   :8083    │
+                     └─────┬──────┘
+                           │
+                           ▼
+                       OpenVidu
+                         :4443
+```
+
 The platform consists of the following components:
 
 1. **API Gateway (Port 8000)**: A Spring Cloud Gateway that routes HTTP and WebSocket traffic to the appropriate backend microservices.
