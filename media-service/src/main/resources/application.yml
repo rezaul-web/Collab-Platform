@@ -1,0 +1,15 @@
+server:
+  port: 8084
+spring:
+  application:
+    name: media-service
+app:
+  jwt:
+    secret: Y29sbGFiLXBsYXRmb3JtLXN1cGVyLXNlY3JldC1rZXktMTIzNDU2Nzg=
+    expiration-ms: 86400000
+  openvidu:
+    url: https://localhost:4443
+    secret: MY_SECRET
+logging:
+  level:
+    com.example.collab.media: DEBUG

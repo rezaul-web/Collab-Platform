@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package com.example.collab.proto.signalling;
+
+option java_package = "com.example.collab.proto.signalling";
+option java_multiple_files = true;
+
+enum EventType {
+  OFFER = 0;
+  ANSWER = 1;
+  ICE = 2;
+}
+
+message SignalRequest {
+  string room_id = 1;
+  string user_id = 2;
+  string sdp = 3;
+  repeated string ice_candidates = 4;
+}
+
+message SignalResponse {
+  bool accepted = 1;
+  string message = 2;
+}
+
+message SubscribeRequest {
+  string room_id = 1;
+  string user_id = 2;
+}
+
+message SignalEvent {
+  string from_user_id = 1;
+  string sdp = 2;
+  repeated string ice_candidates = 3;
+  EventType type = 4;
+}
+
+service SignallingService {
+  rpc Signal(SignalRequest) returns (SignalResponse);
+  rpc SubscribeSignals(SubscribeRequest) returns (stream SignalEvent);
+}

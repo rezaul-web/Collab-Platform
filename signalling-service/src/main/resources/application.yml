@@ -1,0 +1,11 @@
+server:
+  port: 8083
+spring:
+  application:
+    name: signalling-service
+grpc:
+  server:
+    port: 9093
+logging:
+  level:
+    com.example.collab.signalling: DEBUG

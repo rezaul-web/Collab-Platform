@@ -1,0 +1,50 @@
+# ═══════════════════════════════════════════════════════════════════════
+# Docker Compose — Collab Platform Microservices
+# ═══════════════════════════════════════════════════════════════════════
+# Usage:
+#   docker-compose up -d          # start all services
+#   docker-compose logs -f        # tail logs
+#   docker-compose down           # stop and remove
+# ═══════════════════════════════════════════════════════════════════════
+
+version: "3.9"
+
+services:
+
+  # ── Database (shared PostgreSQL — separate DBs per service) ─────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: collab-postgres
+    environment:
+      POSTGRES_USER: collab
+      POSTGRES_PASSWORD: collab_secret
+      POSTGRES_DB: collab_auth
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/init-databases.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U collab"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── OpenVidu (WebRTC media server) ──────────────────────────────────
+  openvidu:
+    image: openvidu/openvidu-dev:2.29.0
+    container_name: collab-openvidu
+    environment:
+      OPENVIDU_SECRET: MY_SECRET
+    ports:
+      - "4443:4443"
+
+  # ── Redis (optional — for scaling WebSocket brokers) ────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: collab-redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
