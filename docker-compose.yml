@@ -96,7 +96,7 @@ services:
     environment:
       - DB_URL=jdbc:postgresql://postgres:5432/collab_media
       - AUTH_SERVICE_GRPC=static://auth-service:9091
-      - OPENVIDU_URL=https://openvidu:4443
+      - OPENVIDU_URL=http://openvidu:4443
     depends_on:
       postgres:
         condition: service_healthy
