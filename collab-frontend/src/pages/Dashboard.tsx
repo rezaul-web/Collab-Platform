@@ -1,11 +1,28 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { gqlClient } from '../api';
 import { useAuthStore } from '../store';
-import { gql } from 'graphql-request';
 import { LogOut, Plus, Users, Video } from 'lucide-react';
 
-const GET_ROOMS = gql`
+const GRAPHQL_URL = '/graphql';
+
+const gqlFetch = async (query: string, variables?: Record<string, any>) => {
+  const token = localStorage.getItem('token');
+  const res = await fetch(GRAPHQL_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ query, variables }),
+  });
+  const json = await res.json();
+  if (json.errors) {
+    throw new Error(json.errors.map((e: any) => e.message).join(', '));
+  }
+  return json.data;
+};
+
+const GET_ROOMS_QUERY = `
   query {
     rooms {
       id
@@ -18,7 +35,7 @@ const GET_ROOMS = gql`
   }
 `;
 
-const CREATE_ROOM = gql`
+const CREATE_ROOM_MUTATION = `
   mutation CreateRoom($name: String!, $description: String) {
     createRoom(name: $name, description: $description) {
       id
@@ -31,6 +48,7 @@ export default function Dashboard() {
   const [rooms, setRooms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [newRoomName, setNewRoomName] = useState('');
+  const [creating, setCreating] = useState(false);
   
   const user = useAuthStore(state => state.user);
   const logout = useAuthStore(state => state.logout);
@@ -42,7 +60,7 @@ export default function Dashboard() {
 
   const fetchRooms = async () => {
     try {
-      const data: any = await gqlClient.request(GET_ROOMS);
+      const data = await gqlFetch(GET_ROOMS_QUERY);
       setRooms(data.rooms);
     } catch (err) {
       console.error("Failed to fetch rooms", err);
@@ -51,15 +69,29 @@ export default function Dashboard() {
     }
   };
 
-  const handleCreateRoom = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newRoomName) return;
+  const handleCreateRoom = async () => {
+    console.log("=== CREATE ROOM CLICKED ===");
+    console.log("Room name:", newRoomName);
+    if (!newRoomName.trim()) {
+      alert("Please enter a room name");
+      return;
+    }
+    setCreating(true);
     try {
-      await gqlClient.request(CREATE_ROOM, { name: newRoomName, description: 'Created via Web' });
+      console.log("Sending GraphQL mutation...");
+      const data = await gqlFetch(CREATE_ROOM_MUTATION, { 
+        name: newRoomName.trim(), 
+        description: 'Created via Web' 
+      });
+      console.log("Room created:", data);
+      alert("Room created successfully: " + data.createRoom.name);
       setNewRoomName('');
-      fetchRooms(); // refresh list
-    } catch (err) {
-      console.error("Failed to create room", err);
+      fetchRooms();
+    } catch (err: any) {
+      console.error("Failed to create room:", err);
+      alert("Failed to create room: " + err.message);
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -86,7 +118,7 @@ export default function Dashboard() {
       <main style={{ maxWidth: '1200px', margin: '40px auto', padding: '0 20px' }}>
         <div className="glass-panel" style={{ padding: '30px', marginBottom: '40px' }}>
           <h2 style={{ marginBottom: '20px' }}>Create New Workspace</h2>
-          <form onSubmit={handleCreateRoom} style={{ display: 'flex', gap: '16px' }}>
+          <div style={{ display: 'flex', gap: '16px' }}>
             <input 
               type="text" 
               placeholder="Workspace Name (e.g. Design Sync)" 
@@ -94,10 +126,15 @@ export default function Dashboard() {
               onChange={e => setNewRoomName(e.target.value)}
               style={{ maxWidth: '400px' }}
             />
-            <button type="submit" className="btn-primary" disabled={!newRoomName}>
-              <Plus size={18} /> Create Room
+            <button 
+              type="button"
+              className="btn-primary" 
+              disabled={!newRoomName.trim() || creating}
+              onClick={handleCreateRoom}
+            >
+              <Plus size={18} /> {creating ? 'Creating...' : 'Create Room'}
             </button>
-          </form>
+          </div>
         </div>
 
         <h2 style={{ marginBottom: '20px' }}>Active Workspaces</h2>

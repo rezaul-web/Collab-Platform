@@ -70,7 +70,7 @@ export default function Room() {
 
   const connectChat = () => {
     const client = new Client({
-      brokerURL: 'ws://localhost:8000/ws/chat',
+      brokerURL: `ws://${window.location.host}/ws/chat`,
       connectHeaders: { Authorization: `Bearer ${token}` },
       debug: function (str) { console.log(str); },
       reconnectDelay: 5000,

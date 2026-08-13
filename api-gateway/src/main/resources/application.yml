@@ -13,15 +13,6 @@ spring:
 
   cloud:
     gateway:
-      # ── Global CORS ─────────────────────────────────────────────────
-      globalcors:
-        cors-configurations:
-          '[/**]':
-            allowedOriginPatterns: "*"
-            allowedMethods: "*"
-            allowedHeaders: "*"
-            allowCredentials: true
-
       # ── Route Definitions ───────────────────────────────────────────
       routes:
 

@@ -1,6 +1,6 @@
 import { GraphQLClient } from 'graphql-request';
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = '';
 
 export const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
@@ -8,12 +8,16 @@ export const getAuthHeaders = () => {
 };
 
 // --- GraphQL Client ---
-export const gqlClient = new GraphQLClient(`${API_BASE}/graphql`, {
+export const gqlClient = new GraphQLClient('/graphql', {
   requestMiddleware: (request) => {
     const token = localStorage.getItem('token');
+    const newHeaders = new Headers(request.headers as any);
+    if (token) {
+      newHeaders.set('Authorization', `Bearer ${token}`);
+    }
     return {
       ...request,
-      headers: { ...request.headers, ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+      headers: newHeaders
     };
   }
 });
