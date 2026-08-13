@@ -143,6 +143,13 @@ export default function Room() {
     setChatInput('');
   };
 
+  // Attach stream to video element whenever localStream or videoJoined changes
+  useEffect(() => {
+    if (localVideoRef.current && localStream) {
+      localVideoRef.current.srcObject = localStream;
+    }
+  }, [localStream, videoJoined]);
+
   // --- VIDEO LOGIC (simplified without OpenVidu dependency) ---
   const joinVideoSession = async () => {
     try {
@@ -154,10 +161,7 @@ export default function Room() {
         audio: true
       });
       setLocalStream(stream);
-      
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-      }
+      setVideoJoined(true);
 
       // Try to create media session on backend
       try {
@@ -168,8 +172,6 @@ export default function Room() {
       } catch (mediaErr) {
         console.warn('Media backend not fully available, using local preview only:', mediaErr);
       }
-      
-      setVideoJoined(true);
     } catch (err: any) {
       console.error('Error joining video session:', err);
       setVideoError(err.message || 'Failed to access camera/microphone');
@@ -201,6 +203,14 @@ export default function Room() {
     }
   };
 
+  // Callback ref to attach stream as soon as video element mounts
+  const videoRefCallback = (node: HTMLVideoElement | null) => {
+    (localVideoRef as any).current = node;
+    if (node && localStream) {
+      node.srcObject = localStream;
+    }
+  };
+
   return (
     <div className="room-container">
       {/* Main Video Area */}
@@ -215,7 +225,7 @@ export default function Room() {
         <div className="video-grid">
           {videoJoined ? (
             <div className="video-box">
-              <video autoPlay muted playsInline ref={localVideoRef} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <video autoPlay muted playsInline ref={videoRefCallback} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               <div style={{ position: 'absolute', bottom: '10px', left: '10px', background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>
                 {user?.username} (You)
               </div>
