@@ -11,21 +11,112 @@ version: "3.9"
 
 services:
 
-  # ── Database (shared PostgreSQL — separate DBs per service) ─────────
+  # ── API Gateway ────────────────────────────────────────────────────────
+  api-gateway:
+    build:
+      context: .
+      args:
+        MODULE: api-gateway
+    container_name: collab-api-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - AUTH_SERVICE_URI=http://auth-service:8081
+      - CHAT_SERVICE_URI=http://chat-service:8082
+      - CHAT_SERVICE_WS_URI=ws://chat-service:8082
+      - SIGNALLING_SERVICE_URI=http://signalling-service:8083
+      - MEDIA_SERVICE_URI=http://media-service:8084
+    depends_on:
+      - auth-service
+      - chat-service
+      - signalling-service
+      - media-service
+
+  # ── Auth Service ───────────────────────────────────────────────────────
+  auth-service:
+    build:
+      context: .
+      args:
+        MODULE: auth-service
+    container_name: collab-auth-service
+    ports:
+      - "8081:8081"
+      - "9091:9091"
+    environment:
+      - DB_URL=jdbc:postgresql://postgres:5432/collab_auth
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── Chat Service ───────────────────────────────────────────────────────
+  chat-service:
+    build:
+      context: .
+      args:
+        MODULE: chat-service
+    container_name: collab-chat-service
+    ports:
+      - "8082:8082"
+      - "9092:9092"
+    environment:
+      - DB_URL=jdbc:postgresql://postgres:5432/collab_chat
+      - AUTH_SERVICE_GRPC=static://auth-service:9091
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+
+  # ── Signalling Service ─────────────────────────────────────────────────
+  signalling-service:
+    build:
+      context: .
+      args:
+        MODULE: signalling-service
+    container_name: collab-signalling-service
+    ports:
+      - "8083:8083"
+      - "9093:9093"
+    environment:
+      - AUTH_SERVICE_GRPC=static://auth-service:9091
+      - CHAT_SERVICE_GRPC=static://chat-service:9092
+    depends_on:
+      - auth-service
+      - chat-service
+
+  # ── Media Service ──────────────────────────────────────────────────────
+  media-service:
+    build:
+      context: .
+      args:
+        MODULE: media-service
+    container_name: collab-media-service
+    ports:
+      - "8084:8084"
+    environment:
+      - DB_URL=jdbc:postgresql://postgres:5432/collab_media
+      - AUTH_SERVICE_GRPC=static://auth-service:9091
+      - OPENVIDU_URL=https://openvidu:4443
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+
+  # ── Database (shared PostgreSQL) ───────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     container_name: collab-postgres
     environment:
-      POSTGRES_USER: collab
-      POSTGRES_PASSWORD: collab_secret
-      POSTGRES_DB: collab_auth
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Rezaul@2004
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./infra/init-databases.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U collab"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -39,7 +130,7 @@ services:
     ports:
       - "4443:4443"
 
-  # ── Redis (optional — for scaling WebSocket brokers) ────────────────
+  # ── Redis (optional) ────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     container_name: collab-redis

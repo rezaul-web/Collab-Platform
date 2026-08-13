@@ -7,7 +7,7 @@ spring:
 
   # ── PostgreSQL ──────────────────────────────────────────────────────
   datasource:
-    url: jdbc:postgresql://localhost:5432/collab_chat
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/collab_chat}
     driver-class-name: org.postgresql.Driver
     username: postgres
     password: Rezaul@2004
@@ -33,7 +33,7 @@ spring:
 grpc:
   client:
     auth-service:
-      address: static://localhost:9091
+      address: ${AUTH_SERVICE_GRPC:static://localhost:9091}
       negotiation-type: plaintext
 
 app:

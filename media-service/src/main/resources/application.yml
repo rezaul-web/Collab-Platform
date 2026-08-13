@@ -8,7 +8,7 @@ app:
     secret: Y29sbGFiLXBsYXRmb3JtLXN1cGVyLXNlY3JldC1rZXktMTIzNDU2Nzg=
     expiration-ms: 86400000
   openvidu:
-    url: https://localhost:4443
+    url: ${OPENVIDU_URL:https://localhost:4443}
     secret: MY_SECRET
 logging:
   level:
