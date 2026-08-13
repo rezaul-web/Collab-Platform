@@ -44,8 +44,7 @@ class SecurityConfig(
                 auth.requestMatchers(
                     "/graphql",
                     "/graphiql",
-                    "/ws/**",
-                    "/h2-console/**"
+                    "/ws/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             }

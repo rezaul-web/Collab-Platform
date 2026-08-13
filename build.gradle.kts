@@ -46,7 +46,7 @@ subprojects {
         useJUnitPlatform()
     }
 
-    java {
+    configure<JavaPluginExtension> {
         toolchain {
             languageVersion.set(JavaLanguageVersion.of(21))
         }
