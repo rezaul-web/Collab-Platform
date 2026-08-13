@@ -90,7 +90,7 @@ export default function Room() {
   const connectChat = () => {
     const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     const client = new Client({
-      brokerURL: `${wsProtocol}://${window.location.host}/ws`,
+      brokerURL: `${wsProtocol}://${window.location.host}/ws/raw`,
       connectHeaders: { Authorization: `Bearer ${token}` },
       debug: function (str) { console.log('[STOMP]', str); },
       reconnectDelay: 5000,

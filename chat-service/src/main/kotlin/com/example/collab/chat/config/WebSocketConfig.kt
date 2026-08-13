@@ -14,11 +14,18 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 class WebSocketConfig : WebSocketMessageBrokerConfigurer {
 
     /**
-     * Registers STOMP endpoints mapping to `/ws` with SockJS fallback.
+     * Registers STOMP endpoints:
+     * - `/ws/raw` for native WebSocket clients (browsers)
+     * - `/ws` with SockJS fallback for legacy clients
      *
      * @param registry Endpoint registry
      */
     override fun registerStompEndpoints(registry: StompEndpointRegistry) {
+        // Raw WebSocket endpoint (for @stomp/stompjs in browser)
+        registry.addEndpoint("/ws/raw")
+            .setAllowedOriginPatterns("*")
+
+        // SockJS fallback endpoint
         registry.addEndpoint("/ws")
             .setAllowedOriginPatterns("*")
             .withSockJS()

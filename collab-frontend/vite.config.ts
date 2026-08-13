@@ -23,6 +23,7 @@ export default defineConfig({
           });
         }
       },
+      '/ws/raw': { target: 'http://chat-service:8082', ws: true, changeOrigin: true },
       '/ws': { target: 'http://chat-service:8082', ws: true, changeOrigin: true },
       '/api/media': { target: 'http://media-service:8084', changeOrigin: true }
     }
