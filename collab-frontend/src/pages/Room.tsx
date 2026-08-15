@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { restApi } from '../api';
 import { useAuthStore } from '../store';
 import { Client } from '@stomp/stompjs';
+import { OpenVidu, Publisher, Subscriber, Session as OVSession } from 'openvidu-browser';
 import { Send, ArrowLeft, Mic, MicOff, Video, VideoOff } from 'lucide-react';
 
 const GRAPHQL_URL = '/graphql';
@@ -50,8 +51,9 @@ export default function Room() {
   // Video State
   const [videoError, setVideoError] = useState<string | null>(null);
   const [videoJoined, setVideoJoined] = useState(false);
-  const localVideoRef = useRef<HTMLVideoElement>(null);
-  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [session, setSession] = useState<OVSession | null>(null);
+  const [publisher, setPublisher] = useState<Publisher | null>(null);
+  const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(true);
 
@@ -65,9 +67,7 @@ export default function Room() {
       if (stompClient.current) {
         stompClient.current.deactivate();
       }
-      if (localStream) {
-        localStream.getTracks().forEach(t => t.stop());
-      }
+      leaveVideoSession();
     };
   }, [roomId, user]);
 
@@ -79,7 +79,6 @@ export default function Room() {
   const fetchPreviousMessages = async () => {
     try {
       const data = await gqlFetch(GET_MESSAGES_QUERY, { roomId });
-      // Schema returns [Message!]! directly, not wrapped
       const msgs = Array.isArray(data.messages) ? data.messages : [];
       setMessages(msgs.slice().reverse()); // Chronological order
     } catch (err) {
@@ -100,7 +99,6 @@ export default function Room() {
 
     client.onConnect = () => {
       console.log('STOMP Connected!');
-      // Subscribe to the topic matching the backend @SendTo annotation
       client.subscribe(`/topic/chat/${roomId}`, (msg) => {
         const newMsg = JSON.parse(msg.body);
         setMessages(prev => [...prev, {
@@ -132,7 +130,6 @@ export default function Room() {
       return;
     }
     
-    // Send to the destination matching backend @MessageMapping("/chat/{roomId}")
     stompClient.current.publish({
       destination: `/app/chat/${roomId}`,
       body: JSON.stringify({ 
@@ -143,72 +140,99 @@ export default function Room() {
     setChatInput('');
   };
 
-  // Attach stream to video element whenever localStream or videoJoined changes
-  useEffect(() => {
-    if (localVideoRef.current && localStream) {
-      localVideoRef.current.srcObject = localStream;
-    }
-  }, [localStream, videoJoined]);
-
-  // --- VIDEO LOGIC (simplified without OpenVidu dependency) ---
+  // --- VIDEO LOGIC (OpenVidu) ---
   const joinVideoSession = async () => {
     try {
       setVideoError(null);
       
-      // Get local media
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true
+      const OV = new OpenVidu();
+      // Enable detailed logs for debugging OpenVidu
+      OV.enableProdMode();
+      
+      const mySession = OV.initSession();
+
+      mySession.on('streamCreated', (event) => {
+        const subscriber = mySession.subscribe(event.stream, undefined);
+        setSubscribers(prev => [...prev, subscriber]);
       });
-      setLocalStream(stream);
+
+      mySession.on('streamDestroyed', (event) => {
+        setSubscribers(prev => prev.filter(sub => sub !== event.stream.streamManager));
+      });
+
+      mySession.on('exception', (exception) => {
+        console.warn('OpenVidu exception:', exception);
+      });
+
+      // 1. Initialize publisher to request camera permissions
+      const pub = await OV.initPublisherAsync(undefined, {
+        audioSource: undefined,
+        videoSource: undefined,
+        publishAudio: true,
+        publishVideo: true,
+        resolution: '640x480',
+        frameRate: 30,
+        insertMode: 'APPEND',
+        mirror: true
+      });
+
+      // 2. Fetch connection token from backend
+      console.log('Requesting media session for room:', roomId);
+      const sessionData = await restApi.createMediaSession(roomId!);
+      console.log('Media session created/fetched:', sessionData);
+      
+      const tokenData = await restApi.generateMediaToken(sessionData.sessionId);
+      console.log('Media token fetched:', tokenData.token);
+
+      // 3. Connect to the session
+      await mySession.connect(tokenData.token, { clientData: user?.username });
+
+      // 4. Publish our stream
+      await mySession.publish(pub);
+      
+      setSession(mySession);
+      setPublisher(pub);
       setVideoJoined(true);
 
-      // Try to create media session on backend
-      try {
-        const sessionData = await restApi.createMediaSession(roomId!);
-        console.log('Media session created:', sessionData);
-        const tokenData = await restApi.generateMediaToken(sessionData.sessionId);
-        console.log('Media token:', tokenData);
-      } catch (mediaErr) {
-        console.warn('Media backend not fully available, using local preview only:', mediaErr);
-      }
     } catch (err: any) {
       console.error('Error joining video session:', err);
-      setVideoError(err.message || 'Failed to access camera/microphone');
+      setVideoError(err.message || 'Failed to access camera/microphone or connect to media server');
     }
   };
 
   const leaveVideoSession = () => {
-    if (localStream) {
-      localStream.getTracks().forEach(t => t.stop());
-      setLocalStream(null);
+    if (session) {
+      session.disconnect();
     }
-    if (localVideoRef.current) {
-      localVideoRef.current.srcObject = null;
-    }
+    setSession(null);
+    setPublisher(null);
+    setSubscribers([]);
     setVideoJoined(false);
   };
 
   const toggleAudio = () => {
-    if (localStream) {
-      localStream.getAudioTracks().forEach(t => { t.enabled = !audioEnabled; });
-      setAudioEnabled(!audioEnabled);
+    if (publisher) {
+      const newState = !audioEnabled;
+      publisher.publishAudio(newState);
+      setAudioEnabled(newState);
     }
   };
 
   const toggleVideo = () => {
-    if (localStream) {
-      localStream.getVideoTracks().forEach(t => { t.enabled = !videoEnabled; });
-      setVideoEnabled(!videoEnabled);
+    if (publisher) {
+      const newState = !videoEnabled;
+      publisher.publishVideo(newState);
+      setVideoEnabled(newState);
     }
   };
 
-  // Callback ref to attach stream as soon as video element mounts
-  const videoRefCallback = (node: HTMLVideoElement | null) => {
-    (localVideoRef as any).current = node;
-    if (node && localStream) {
-      node.srcObject = localStream;
-    }
+  // Helper function to safely set ref for OpenVidu elements
+  const createVideoRefCallback = (videoElement: Publisher | Subscriber) => {
+    return (node: HTMLVideoElement | null) => {
+      if (node && videoElement) {
+        videoElement.addVideoElement(node);
+      }
+    };
   };
 
   return (
@@ -224,12 +248,34 @@ export default function Room() {
 
         <div className="video-grid">
           {videoJoined ? (
-            <div className="video-box">
-              <video autoPlay muted playsInline ref={videoRefCallback} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              <div style={{ position: 'absolute', bottom: '10px', left: '10px', background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>
-                {user?.username} (You)
-              </div>
-            </div>
+            <>
+              {publisher && (
+                <div className="video-box">
+                  <video autoPlay={true} muted playsInline ref={createVideoRefCallback(publisher)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <div style={{ position: 'absolute', bottom: '10px', left: '10px', background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>
+                    {user?.username} (You)
+                  </div>
+                </div>
+              )}
+              {subscribers.map((sub, i) => {
+                let clientData = 'Remote User';
+                try {
+                  const data = sub.stream.connection.data;
+                  if (data) {
+                    clientData = JSON.parse(data.split('%/%')[0]).clientData;
+                  }
+                } catch(e) {}
+                
+                return (
+                  <div className="video-box" key={i}>
+                    <video autoPlay={true} playsInline ref={createVideoRefCallback(sub)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <div style={{ position: 'absolute', bottom: '10px', left: '10px', background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>
+                      {clientData}
+                    </div>
+                  </div>
+                );
+              })}
+            </>
           ) : (
             <div className="video-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' }}>
               {videoError ? (
