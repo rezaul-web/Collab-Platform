@@ -315,15 +315,21 @@ export default function Room() {
         <div className="chat-messages">
           {messages.map((msg, i) => {
             const isOwn = msg.senderUsername === user?.username;
-            const timeString = msg.sentAt ? new Date(msg.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+            let timeString = '';
+            try {
+              const dateVal = msg.sentAt ? new Date(msg.sentAt) : new Date();
+              timeString = dateVal.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            } catch(e) {
+              timeString = 'Now';
+            }
             return (
               <div key={i} className={`message animate-fade-in ${isOwn ? 'own' : ''}`}>
                 <div 
                   className="message-sender" 
-                  style={{ display: 'flex', gap: '6px', justifyContent: isOwn ? 'flex-end' : 'flex-start', alignItems: 'baseline' }}
+                  style={{ display: 'flex', gap: '8px', justifyContent: isOwn ? 'flex-end' : 'flex-start', alignItems: 'center', marginBottom: '4px' }}
                 >
-                  <span style={{ fontWeight: '500' }}>{isOwn ? 'You' : msg.senderUsername}</span>
-                  <span style={{ fontSize: '10px', opacity: 0.7 }}>{timeString}</span>
+                  <span style={{ fontWeight: 'bold', fontSize: '0.85rem' }}>{isOwn ? 'You' : msg.senderUsername}</span>
+                  <span style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>{timeString}</span>
                 </div>
                 <div className="message-bubble">{msg.content}</div>
               </div>
