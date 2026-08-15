@@ -315,9 +315,16 @@ export default function Room() {
         <div className="chat-messages">
           {messages.map((msg, i) => {
             const isOwn = msg.senderUsername === user?.username;
+            const timeString = msg.sentAt ? new Date(msg.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
             return (
               <div key={i} className={`message animate-fade-in ${isOwn ? 'own' : ''}`}>
-                {!isOwn && <div className="message-sender">{msg.senderUsername}</div>}
+                <div 
+                  className="message-sender" 
+                  style={{ display: 'flex', gap: '6px', justifyContent: isOwn ? 'flex-end' : 'flex-start', alignItems: 'baseline' }}
+                >
+                  <span style={{ fontWeight: '500' }}>{isOwn ? 'You' : msg.senderUsername}</span>
+                  <span style={{ fontSize: '10px', opacity: 0.7 }}>{timeString}</span>
+                </div>
                 <div className="message-bubble">{msg.content}</div>
               </div>
             );
