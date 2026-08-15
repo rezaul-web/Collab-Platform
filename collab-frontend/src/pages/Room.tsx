@@ -322,14 +322,13 @@ export default function Room() {
             } catch(e) {
               timeString = 'Now';
             }
+            
+            const senderText = isOwn ? `You (${timeString})` : `${msg.senderUsername} (${timeString})`;
+            
             return (
               <div key={i} className={`message animate-fade-in ${isOwn ? 'own' : ''}`}>
-                <div 
-                  className="message-sender" 
-                  style={{ display: 'flex', gap: '8px', justifyContent: isOwn ? 'flex-end' : 'flex-start', alignItems: 'center', marginBottom: '4px' }}
-                >
-                  <span style={{ fontWeight: 'bold', fontSize: '0.85rem' }}>{isOwn ? 'You' : msg.senderUsername}</span>
-                  <span style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>{timeString}</span>
+                <div className="message-sender" style={{ fontWeight: '600', marginBottom: '4px', color: 'var(--text-muted)' }}>
+                  {senderText}
                 </div>
                 <div className="message-bubble">{msg.content}</div>
               </div>
